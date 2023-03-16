@@ -353,6 +353,7 @@ class FhemService {
 
   sendCommand(cmdline = '', async = '0') {
     const url = new URL(this.config.fhemDir);
+    log(1, 'fetchCSrf csrf' + this.config.username + ':' + this.config.password);
     const params = {
       cmd: cmdline,
       asyncCmd: async,
@@ -409,14 +410,26 @@ class FhemService {
     myHeaders.append("Authorization", "Basic " + btoa(this.config.username + ':' + this.config.password) );
     const options = {
       headers: myHeaders,
-      cache: 'no-cache',
-      mode: 'cors'
+      cache: 'no-cache'
     };
     return fetch(this.config.fhemDir + '?XHR=1', options ) 
         .then(response => {
           this.config.csrf = this.getCookie(response.headers.get('set-cookie'),'AuthToken');
-          log(1, 'Got csrf from FHEM:' + this.config.csrf);
+          log(1, 'Got ... csrf from FHEM:' + response.headers + ' '+ this.config.csrf);
+	  console.log(...response.headers);
+	  for (const key of response.headers.keys()) {
+            console.log(key);
+          } 
         });
+//    return fetch(this.config.fhemDir + '?XHR=1', options ) 
+//      .then(response => {
+//        response.headers.forEach((value, key) => {
+//          console.log(`${key} ==> ${value}`);
+//        })
+//        this.config.csrf = response.headers.get('X-FHEM-csrfToken');
+//        //this.config.csrf = response.headers.get('x-fhem-csrftoken');
+//        log(1, 'Got csrf from FHEM:' + this.config.csrf);
+//      });	  
   }
 
   scheduleHealthCheck() {
