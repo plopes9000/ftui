@@ -64,7 +64,8 @@ class FtuiApp {
     this.fhemService = fhemService;
 
     // init Page after CSFS Token has been retrieved
-    await fhemService.fetchCSrf()
+    await fhemService.fetchCSrf();
+    ftui.log(1, 'fhemService.fetchCSrf='+this.config.csrf);
     this.initPage();
 
     // call health check periodically
@@ -219,8 +220,8 @@ class FtuiApp {
 
   setTheme(isDark) {
     const now = ftui.dateFormat(new Date(), 'YYYY-MM-DD hh:mm:ss');
-    fhemService.updateReadingItem('ftui-isDark', {
-      id: 'ftui-isDark',
+    fhemService.updateReadingItem('local-dark', {
+      id: 'local-dark',
       invalid: false,
       value: isDark,
       time: now,

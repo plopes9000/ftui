@@ -171,13 +171,6 @@ class FhemService {
       this.states.refresh.duration = duration * 1000;
       this.states.refresh.lastTimestamp = new Date();
       this.states.refresh.result = 'ok';
-      const now = dateFormat(new Date(), 'YYYY-MM-DD hh:mm:ss');
-      this.updateReadingItem('ftui-lastEvent', {
-        invalid: false,
-        value: '',
-        time: now,
-        update: now,
-      });
 
       this.onUpdateDone();
     } else {
@@ -244,6 +237,8 @@ class FhemService {
     this.states.connection.URL = this.config.fhemDir.replace(/^http/i, 'ws') + '?XHR=1&inform=type=status;filter=' +
       this.config.update.filter + ';since=' + this.states.connection.lastEventTimestamp.getTime() + ';fmt=JSON' +
       '&timestamp=' + Date.now();
+
+    this.states.connection.URL = this.states.connection.URL.replace(/\/\//i, '//'+this.config.username + ':' + this.config.password+'@');
 
     log(1, '[websocket] create new connection - URL = ' + this.states.connection.URL);
     this.states.connection.lastEventTimestamp = new Date();
@@ -328,12 +323,6 @@ class FhemService {
             parameterData.value = value;
           }
           this.updateReadingItem(parameterId, parameterData, doPublish);
-          this.updateReadingItem('ftui-lastEvent', {
-            invalid: false,
-            value: parameterData.value,
-            time: parameterData.time,
-            update: parameterData.update,
-          });
         }
       }
     });
@@ -353,7 +342,6 @@ class FhemService {
 
   sendCommand(cmdline = '', async = '0') {
     const url = new URL(this.config.fhemDir);
-    log(1, 'fetchCSrf csrf' + this.config.username + ':' + this.config.password);
     const params = {
       cmd: cmdline,
       asyncCmd: async,
@@ -393,9 +381,10 @@ class FhemService {
       }
     })
   }
-  
+
   getCookie(cookie, name) {
     const q = {}
+    log(1, 'getCookie '+cookie);
     cookie?.replace(/\s/g, '')
       .split(';')
       .map(i=>i.split('='))
@@ -403,34 +392,22 @@ class FhemService {
         q[key] = value
     })
     return q[name]??null;
-  }
+  }	
 
   fetchCSrf() {
     const myHeaders = new Headers();
-    log(1, 'fetchCSrf csrf' + this.config.username + ':' + this.config.password);
+    log(1, 'fetchCSrf csrf begin');
     myHeaders.append("Authorization", "Basic " + btoa(this.config.username + ':' + this.config.password) );
     const options = {
-      headers: myHeaders,
-      cache: 'no-cache'
+      headers: myHeaders,	    
+      cache: 'no-cache',
+      mode: 'cors'
     };
-    return fetch(this.config.fhemDir + '?XHR=1', options ) 
-        .then(response => {
-          this.config.csrf = this.getCookie(response.headers.get('set-cookie'),'AuthToken');
-          log(1, 'Got ... csrf from FHEM:' + response.headers + ' '+ this.config.csrf);
-	  console.log(...response.headers);
-	  for (const key of response.headers.keys()) {
-            console.log(key);
-          } 
-        });
-//    return fetch(this.config.fhemDir + '?XHR=1', options ) 
-//      .then(response => {
-//        response.headers.forEach((value, key) => {
-//          console.log(`${key} ==> ${value}`);
-//        })
-//        this.config.csrf = response.headers.get('X-FHEM-csrfToken');
-//        //this.config.csrf = response.headers.get('x-fhem-csrftoken');
-//        log(1, 'Got csrf from FHEM:' + this.config.csrf);
-//      });	  
+    return fetch(this.config.fhemDir + '?XHR=1', options )     
+      .then(response => {
+        this.config.csrf = response.headers.get('X-FHEM-csrfToken');
+        log(1, 'Got csrf from FHEM:' + this.config.csrf);
+      });
   }
 
   scheduleHealthCheck() {
